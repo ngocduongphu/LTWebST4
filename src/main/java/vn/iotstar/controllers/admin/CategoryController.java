@@ -1,17 +1,23 @@
 package vn.iotstar.controllers.admin;
+import static vn.iotstar.utils.Constant.*;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import vn.iotstar.models.CategoryModel;
 import vn.iotstar.services.ICategoryService;
 import vn.iotstar.services.impl.CategoryServiceImpl;
-
+@MultipartConfig(fileSizeThreshold= 1024 * 1024,
+	maxFileSize = 1024 * 1024 * 5, maxRequestSize = 1024 * 1024 * 5 * 5)
 @WebServlet(urlPatterns = {"/admin/categories","/admin/category/add", 
 		"/admin/category/insert","/admin/category/edit", "/admin/category/update",
 		"/admin/category/delete", "/admin/category/search"})
@@ -56,32 +62,84 @@ public class CategoryController extends HttpServlet {
 		resp.setCharacterEncoding("UTF-8");
 		if (url.contains("insert"))
 		{
+			CategoryModel category =new CategoryModel();
 			String categoryname=req.getParameter("categoryname");
 			String status=req.getParameter("status");
 			int statuss= Integer.parseInt(status);
-			String images= "https://www.oppo.com/content/dam/oppo/common/mkt/v2-2/oppo-a60/list-page/427-600-blue.png";
-			
-			CategoryModel category =new CategoryModel();
 			category.setCategoryname(categoryname);
-			category.setImages(images);
 			category.setStatus(statuss);
+			String fname= "";
+			String uploadPath= DIR;
+			File uploadDir=new File(uploadPath);
+			if (uploadDir.exists())
+			{
+				uploadDir.mkdir();
+			}
+			try
+			{
+				Part part=req.getPart("images");
+				if (part.getSize()>0) {
+					String filename= Paths.get(part.getSubmittedFileName()).getFileName().toString();
+					//doi ten file
+					int index=filename.lastIndexOf(".");
+					String ext=filename.substring(index+1);
+					fname=System.currentTimeMillis()+ "." +ext;
+					//up load file
+					part.write(uploadPath+ "/" +fname); 
+					//ghi ten fille vao data
+					category.setImages(fname);				
+					} else
+					{
+						category.setImages("avata.png");
+					}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			
 			cateService.insert(category);
 			resp.sendRedirect(req.getContextPath()+ "/admin/categories");
 		}
 		else if (url.contains("update"))
 		{
+			CategoryModel category =new CategoryModel();
 			int categoryid =Integer.parseInt(req.getParameter("categoryid"));
 			String categoryname=req.getParameter("categoryname");
 			String status=req.getParameter("status");
 			int statuss= Integer.parseInt(status);
-			String images= "https://www.oppo.com/content/dam/oppo/common/mkt/v2-2/oppo-a60/list-page/427-600-blue.png";
-			//upload file
-			CategoryModel category =new CategoryModel();
 			category.setCategoryid(categoryid);
 			category.setCategoryname(categoryname);
-			category.setImages(images);
 			category.setStatus(statuss);
+			//luu hinh cu
+			CategoryModel cateId=cateService.findById(categoryid);
+			String fileold=cateId.getImages();
+			//xu li image
+			String fname= "";
+			String uploadPath= DIR;
+			File uploadDir=new File(uploadPath);
+			if (uploadDir.exists())
+			{
+				uploadDir.mkdir();
+			}
+			try
+			{
+				Part part=req.getPart("images");
+				if (part.getSize()>0) {
+					String filename= Paths.get(part.getSubmittedFileName()).getFileName().toString();
+					//doi ten file
+					int index=filename.lastIndexOf(".");
+					String ext=filename.substring(index+1);
+					fname=System.currentTimeMillis()+ "." +ext;
+					//up load file
+					part.write(uploadPath+ "/" +fname); 
+					//ghi ten fille vao data
+					category.setImages(fname);				
+					} else
+					{
+						category.setImages(fileold);
+					}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			
 			cateService.update(category);
 			resp.sendRedirect(req.getContextPath()+ "/admin/categories");
